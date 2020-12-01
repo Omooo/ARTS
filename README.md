@@ -196,4 +196,4 @@ fun singleNumber(nums: IntArray): Int {
 
 [20 Things Most People Learn Too Late In Life](https://medium.com/better-advice/20-things-most-people-learn-too-late-in-life-23674cdbd75c)
 
-[单向散列函数：如何保证信息完整性?](
+[单向散列函数：如何保证信息完整性?](https://time.geekbang.org/column/article/312846)
