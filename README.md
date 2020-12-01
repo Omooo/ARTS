@@ -11,6 +11,117 @@ T: Tips，学习至少一个技术技巧
 S: Share，分享一篇有观点和思考的技术文章
 ```
 
+✨ 坚持一月吃顿火锅儿！✨
+
+#### 第二周（11-30 至 12-06）
+
+**A:**
+
+题目：[多数元素](https://leetcode-cn.com/problems/majority-element/)
+
+很容易想到的是排序取中位数，这个是 O(nlog(n)) 的，更好的解决办法是摩尔投票法，即对拼消耗，O(n) 时间复杂度。
+
+```java
+class Solution {
+    public int majorityElement(int[] nums) {
+        int result = nums[0];
+        int mod = 1;
+        for (int i = 1; i < nums.length; i++) {
+            if (result == nums[i]) {
+                mod++;
+            } else if (--mod == 0) {
+                result = nums[i];
+                mod = 1;
+            }
+        }
+        return result;
+    }
+}
+```
+
+题目：[搜索二维矩阵 ||](https://leetcode-cn.com/problems/search-a-2d-matrix-ii/)
+
+同简单，从二维矩阵的右上角开始找，比目标值大就往左查询，小就往下。
+
+```java
+class Solution {
+    public boolean searchMatrix(int[][] matrix, int target) {
+        int i = 0, j = matrix[0].length - 1;
+        while (i < matrix.length && j >= 0) {
+            int num = matrix[i][j];
+            if (num < target) {
+                i++;
+            } else if (num > target) {
+                j--;
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+**R:**
+
+[How to display your Android project dependency graph in your README file](https://medium.com/google-developer-experts/how-to-display-your-android-project-dependency-graph-in-your-readme-file-e52dcadafa7a)
+
+这篇文章讲的是可以在你的 Github README 文件里面展示 Android 项目的依赖关系图。其实核心就是写了一个 Gradle Task，生成了一个 .dot 文件，dot 即图片描述语言，脚本中还涉及把 .dot 文件转化成 png 的操作，用到的是 Graphviz，在安装完这个软件之后，还需要你的 AS 里面安装一个 State Art 插件，然后就可以直接运行该 Task 了。
+
+**T:**
+
+如何提升 TCP 三次握手的性能？
+
+TCP 是一个可以双向传输的全双工协议，所以需要经过三次握手才能建立连接。三次握手在一个 HTTP 请求中的平均时间占比在 10% 以上，在网络状况不佳、高并发或者遭遇 SYN 泛洪攻击等场景中，如果不能正确的调整三次握手中的参数，就会对性能有很大的影响。
+
+首先看客户端的优化，客户端在发出 SYN 报文后但没有收到对端 ACK 时，客户端会重发 SYN，重试的次数由 tcp_syn_retries 参数控制，默认是 6 次：
+
+```
+net.ipv4.tcp_syn_retries = 6
+```
+
+第 1 次重试发生在 1 秒钟后，接着会以翻倍的方式在第 2、4、8、16、32 秒共做 6 次重试，最后一次重试会等待 64 秒，如果仍然没有返回 ACK，才会终止三次握手。所以说总耗时是 127 秒，超过 2 分钟。
+
+如果这是一台有明确任务的服务器，就可以根据网络的稳定性和目标服务器的繁忙程度修改重试次数，调整客户端的三次握手时间上限。比如内网中通讯时，就可以适当调低重试次数，尽快的把错误暴露给应用程序。
+
+再看服务端的优化，服务端在收到 SYN 报文并回复 SYN+ACK 时，此时服务端会把该连接信息放入一个 SYN 版连接队列里面，当这个队列溢出时，服务端将无法在建立新的连接。所以此时可以修改 SYN 半连接队列的大小的，即：
+
+```
+net.ipv4.tcp_max_syn_backlog = 1024
+```
+
+如果 SYN 半连接队列已满，只能丢弃连接吗？并不是这样，开启 syncookies 功能就可以在不使用 SYN 队列的情况下成功建立连接。syncoookie 是这么做的：服务端根据当前状态计算出一个值，放在已方发出的 SYN+ACK 报文中发出，当客户端返回 ACK 报文时，取出该值验证，如果合法，就认为连接建立成功。
+
+Linux 下怎样开启 syncookies 功能呢？修改 top_syncookies 参数即可，其中值为 0 时表示关闭该功能，2 表示无条件开启功能，而 1 则表示仅当 SYN 半连接队列放不下时再启用它。由于 syncookie 仅用于应对 SYN 泛洪攻击，这种方式建立的连接，许多 TCP 特性都无法使用，所以，应当把 tcp_syncookies 设置为 1，仅在队列满时再启用：
+
+```
+net.ipv4.tcp_syncookies = 1
+```
+
+当服务端发送完 SYN+ACK 报文后，但是却为收到对端 ACK，这时候服务端就会重发 SYN+ACK。当网络繁忙、不稳定时，报文丢失就会变严重，此时应该调大重发次数，反之则可以调小重发次数。对应的参数如下：
+
+```
+net.ipv4.tcp_synack_retries = 5
+```
+
+当服务端收到 ACK 后，内核就会把连接从 SYN 半连接队列中移除，再移入 accept 队列，等待进程调用 accept 函数时再把连接取出来。如果进程不能及时的调用 accept 函数，就会造成 accept 队列溢出，最终导致建立好的 TCP 连接被丢弃。
+
+实际上，丢弃连接只是 Linux 的默认行为，我们还可以选择向客户端发送 RST 复位报文，告诉客户端连接已经建立失败。打开这一功能需要将 tcp_abort_on_overflow 参数设置为 1。
+
+不过通常情况下，应该把该参数设置为 0，因为这样更有利于应对突发流量。
+
+```
+net.ipv4.tcp_abort_on_overflow = 0
+```
+
+
+
+**S:**
+
+[How to display your Android project dependency graph in your README file](https://medium.com/google-developer-experts/how-to-display-your-android-project-dependency-graph-in-your-readme-file-e52dcadafa7a)
+
+[如何提升 TCP 三次握手的性能](https://time.geekbang.org/column/article/237612)
+
 ✨ 坚持一周奖励自己一个鸡排吃！✨
 
 #### 第一周（11-24 至 11-29）
@@ -85,4 +196,4 @@ fun singleNumber(nums: IntArray): Int {
 
 [20 Things Most People Learn Too Late In Life](https://medium.com/better-advice/20-things-most-people-learn-too-late-in-life-23674cdbd75c)
 
-[单向散列函数：如何保证信息完整性?](https://time.geekbang.org/column/article/312846)
+[单向散列函数：如何保证信息完整性?](
